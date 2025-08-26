@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Timed Message Reveal</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background: #f8f9fa;
+      text-align: center;
+    }
+    .container {
+      max-width: 600px;
+      margin: auto;
+      padding: 20px;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    input, textarea, button {
+      margin: 10px 0;
+      padding: 10px;
+      width: 100%;
+      font-size: 16px;
+    }
+    #countdown {
+      font-size: 22px;
+      margin-top: 20px;
+      color: #d63384;
+    }
+    #finalMessage {
+      font-size: 24px;
+      margin-top: 20px;
+      font-weight: bold;
+      color: #198754;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>⏳ Timed Message Generator</h2>
+    <div id="creator">
+      <textarea id="msg" placeholder="Type your secret message here..."></textarea>
+      <label for="targetTime"><b>Select Date & Time:</b></label>
+      <input type="datetime-local" id="targetTime">
+      <button onclick="generateLink()">Generate Link</button>
+      <div id="linkOutput"></div>
+    </div>
+
+    <div id="viewer" style="display:none;">
+      <h3>Countdown to Message</h3>
+      <div id="countdown"></div>
+      <div id="finalMessage"></div>
+    </div>
+  </div>
+
+<script>
+function encodeData(obj) {
+  return btoa(JSON.stringify(obj));
+}
+function decodeData(str) {
+  return JSON.parse(atob(str));
+}
+
+function generateLink() {
+  const msg = document.getElementById("msg").value.trim();
+  const time = document.getElementById("targetTime").value;
+  if (!msg || !time) { alert("Enter a message and select time!"); return; }
+
+  const data = { msg, time };
+  const encoded = encodeData(data);
+  const link = window.location.origin + window.location.pathname + "?d=" + encoded;
+
+  document.getElementById("linkOutput").innerHTML = `
+    ✅ Link generated!<br>
+    <input type="text" id="shareLink" value="${link}" readonly>
+    <br><button onclick="copyLink()">Copy Link</button>
+    <br><a href="${link}" target="_blank">Open Link</a>
+  `;
+}
+
+function copyLink() {
+  const input = document.getElementById("shareLink");
+  input.select();
+  input.setSelectionRange(0, 99999);
+  document.execCommand("copy");
+  alert("Link copied! Now you can share it.");
+}
+
+function startCountdown(msg, targetTime) {
+  const countDownDate = new Date(targetTime).getTime();
+
+  const x = setInterval(() => {
+    const now = new Date().getTime();
+    const distance = countDownDate - now;
+
+    if (distance <= 0) {
+      clearInterval(x);
+      document.getElementById("countdown").innerHTML = "⏰ Time's up!";
+      document.getElementById("finalMessage").innerHTML = msg;
+    } else {
+      const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+      document.getElementById("countdown").innerHTML =
+        `${days}d ${hours}h ${minutes}m ${seconds}s left`;
+    }
+  }, 1000);
+}
+
+// If URL has data, show countdown
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.has("d")) {
+  document.getElementById("creator").style.display = "none";
+  document.getElementById("viewer").style.display = "block";
+
+  try {
+    const data = decodeData(urlParams.get("d"));
+    startCountdown(data.msg, data.time);
+  } catch (e) {
+    document.getElementById("viewer").innerHTML = "<p>⚠️ Invalid link data.</p>";
+  }
+}
+</script>
+</body>
+</html>
